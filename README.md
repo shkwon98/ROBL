@@ -2,13 +2,10 @@
 
 ## Table of Contents
 
-- [ROBL](#robl)
-  - [Table of Contents](#table-of-contents)
-  - [About ](#about-)
-  - [Getting Started ](#getting-started-)
-    - [Prerequisites](#prerequisites)
-    - [Installing](#installing)
-  - [Usage ](#usage-)
+- [About](#about)
+- [Getting Started](#getting_started)
+- [Usage](#usage)
+- [Contributing](../CONTRIBUTING.md)
 
 ## About <a name = "about"></a>
 

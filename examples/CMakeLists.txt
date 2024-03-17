@@ -1,5 +1,11 @@
-add_executable(example_1)
-target_sources(example_1
-    PRIVATE example_1.cpp)
-target_link_libraries(example_1
+add_executable(receiver)
+target_sources(receiver
+    PRIVATE receiver.cpp)
+target_link_libraries(receiver
+    PRIVATE ROBL::ROBL)
+
+add_executable(sender)
+target_sources(sender
+    PRIVATE sender.cpp)
+target_link_libraries(sender
     PRIVATE ROBL::ROBL)

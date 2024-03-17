@@ -18,6 +18,8 @@ Internal::ROBL_BASE::~ROBL_BASE(void)
     {
         close(m_uds_fd);
     }
+
+    m_thread_robl.join();
 }
 
 void Internal::ROBL_BASE::CreateThreadROBL(const std::string &pss_name)

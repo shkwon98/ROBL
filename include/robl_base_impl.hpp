@@ -79,10 +79,51 @@ inline int ROBL_BASE::InternalTryMakeUDS(const std::string &pss_name)
     return EROBL__OK;
 }
 
-inline void ROBL_BASE::InternalUnmarshalUdsPacket(T_ROBL_PKT_HDR *header, uint32_t rb)
+inline int ROBL_BASE::InternalCheckPacketIntegrity(T_ROBL_PKT_HDR *header, uint32_t bytes)
+{
+    // 1. check magic number
+    if (header->magic != ROBL_PKT_MAGIC)
+    {
+        return EROBL__PHI_MAGIC_MISMATCH;
+    }
+
+    // 2. check length
+    if (bytes > ROBL_PKT_LEN)
+    {
+        return EROBL__PHI_OVER_THE_SIZE_A_PKT;
+    }
+
+    // 3. check total packet number
+    if (header->tpn == 0)
+    {
+        return EROBL__PHI_INVALID_TPN;
+    }
+
+    // 4. check packet sequence number
+    if (header->tpn <= header->psn)
+    {
+        return EROBL__PHI_INVALID_PSN;
+    }
+
+    // 5. check CRC32
+    if (check_pkt_crc32(buf, bytes) < 0) // TODO:: implement check_pkt_crc32
+    {
+        return EROBL__PHI_CRC32_MISMATCH;
+    }
+
+    // 6. check packet length
+    if (bytes != (ROBL_PKT_HDR__SZ + header->pl))
+    {
+        return EROBL__PHI_INVALID_PL;
+    }
+
+    return EROBL__OK;
+}
+
+inline void ROBL_BASE::InternalUnmarshalUdsPacket(T_ROBL_PKT_HDR *header, uint32_t bytes)
 {
     // 0. check error
-    if (InternalCheckPacketIntegrity(header, rb) < 0)
+    if (InternalCheckPacketIntegrity(header, bytes) < 0)
     {
         m_stat_uds.rx_err++;
         return;
@@ -90,18 +131,18 @@ inline void ROBL_BASE::InternalUnmarshalUdsPacket(T_ROBL_PKT_HDR *header, uint32
 
     // stat
     m_stat_uds.rx_pkt++;
-    m_stat_uds.rx_bytes += rb;
+    m_stat_uds.rx_bytes += bytes;
 
     // processing...
     if (header->tpn == 1)
     {
         // single packet
-        InternalUnmarshalSinglePacket(header, rb);
+        InternalUnmarshalSinglePacket(header, bytes);
     }
     else
     {
         // multiple packet (fragment packet)
-        InternalUnmarshalFragmentPacket(header, rb);
+        InternalUnmarshalFragmentPacket(header, bytes);
     }
 }
 
@@ -140,7 +181,7 @@ inline void ROBL_BASE::ThreadROBL(const std::string &pss_name) // thread for ROB
         }
         else
         {
-            std::cout << "[UDS-RX] read(uds_fd) succ. xid=" << std::hex << header->xid << ", rb=" << bytes << std::endl;
+            std::cout << "[UDS-RX] read(uds_fd) succ. xid=" << std::hex << header->xid << ", bytes=" << bytes << std::endl;
             DUMPA(ATL_UDS_sRX, "UDS:PKT:RX", uds_pkt_buf.data(), bytes);
             InternalUnmarshalUdsPacket(uds_pkt_buf.data(), bytes);
         }

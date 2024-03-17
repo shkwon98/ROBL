@@ -2,7 +2,7 @@
 
 #include "robl.hpp"
 
-inline int ROBL::Init(int ac, char *av[], const std::string &pss_name)
+inline int ROBL::Init(int ac, char **av, const std::string &pss_name)
 {
     auto init_progress = 0U;
     int result = EROBL__OK;

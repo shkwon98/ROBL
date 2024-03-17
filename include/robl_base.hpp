@@ -23,8 +23,8 @@ using namespace std::chrono_literals;
 typedef struct
 {
     uint32_t magic; // 'ROBL', 0x524F424CU
-    uint16_t spid;  // source PID
-    uint16_t dpid;  // dest PID
+    uint16_t stid;  // source ROBL thread ID
+    uint16_t dtid;  // dest ROBL thread ID
     uint16_t tpn;   // Total Packet Number
     uint16_t psn;   // Packet Sequence Number
     uint32_t tpl;   // Total Packet Length
@@ -286,7 +286,8 @@ public:
 protected:
     void InternalCreateThreadROBL(const std::string &pss_name);
     int InternalTryMakeUDS(const std::string &pss_name);
-    void InternalUnmarshalUdsPacket(T_ROBL_PKT_HDR *header, uint32_t rb);
+    int InternalCheckPacketIntegrity(T_ROBL_PKT_HDR *buf, uint32_t bytes);
+    void InternalUnmarshalUdsPacket(T_ROBL_PKT_HDR *header, uint32_t bytes);
 
     T_ROBL_PKT packet;
 

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <cstddef>
 #include <cstring>
 #include <filesystem>
@@ -35,7 +36,7 @@ typedef struct
     uint32_t pl;    // packet length
 
     uint8_t payload[0];
-} T_ROBL_PKT_HDR;
+} T_ROBL_PKT;
 #define ROBL_PKT_HDR__SZ (sizeof(T_ROBL_PKT_HDR))
 
 #pragma pack(pop)
@@ -188,35 +189,6 @@ typedef struct
 #define ROBL__MULTI_PKT_REC_NO (32)
 #define PKT_MULTI__TIMEOUT     (1 * SEC)
 
-#define WAIT_xID_LIST_NO (64)
-
-struct T_ROBL_WAIT_xID_LIST
-{
-    uint32_t mid_ppos;
-
-    uint32_t mid_list[WAIT_xID_LIST_NO];
-};
-
-struct T_ROBL_PKT_REC
-{
-    uint32_t xid;
-    uint32_t len;
-    uint8_t *payload;
-
-    uint32_t next;
-    uint32_t list;
-};
-
-struct T_ROBL_MULTI_PKT_REC
-{
-    T_ROBL_PKT_HDR hdr;
-
-    uint32_t len;
-    uint8_t *payload;
-
-    uint32_t next;
-};
-
 struct T_ROBL_PKT_META
 {
     volatile uint32_t put_no;
@@ -224,7 +196,7 @@ struct T_ROBL_PKT_META
     uint32_t head;
     uint32_t tail;
 
-    uint32_t last_recv_tick;
+    int64_t last_recv_tick;
     pthread_t wait_tid;
 };
 
@@ -234,25 +206,41 @@ struct T_ROBL_PKT_MUTEX
     std::mutex pkt_mutex;
 
     std::mutex mid_mutex;
-    std::mutex mid_wait_mutex;
 };
 
-struct T_ROBL_PKT
+struct T_ROBL_PKT_REC
+{
+    uint32_t xid;
+    uint32_t len;
+    std::shared_ptr<std::byte[]> payload;
+
+    uint32_t next_idx;
+    // uint32_t list;
+};
+
+struct T_ROBL_MULTI_PKT_REC
+{
+    T_ROBL_PKT hdr;
+
+    uint32_t len;
+    uint8_t *payload;
+
+    uint32_t next;
+};
+
+struct T_ROBL_PKT_ASSEMBLY
 {
     T_ROBL_PKT_META mid;
-    T_ROBL_PKT_META mid_wait;
 
     T_ROBL_PKT_MUTEX mutex;
 
+    std::array<T_ROBL_PKT_REC, ROBL__PKT_REC_NO> pkt_rec;
     uint32_t pkt_rec__free_head;
     uint32_t pkt_rec__free_tail;
     uint32_t pkt_rec__free_list;
-    T_ROBL_PKT_REC pkt_rec[ROBL__PKT_REC_NO];
 
     uint32_t multi_pkt_rec_using_counter;
     T_ROBL_MULTI_PKT_REC multi_pkt_rec[ROBL__MULTI_PKT_REC_NO];
-
-    T_ROBL_WAIT_xID_LIST wait_xid_list;
 };
 
 struct T_PKT_STAT
@@ -285,14 +273,15 @@ public:
 
 protected:
     void InternalCreateThreadROBL(const std::string &pss_name);
-    int InternalTryMakeUDS(const std::string &pss_name);
-    int InternalCheckPacketIntegrity(T_ROBL_PKT_HDR *buf, uint32_t bytes);
-    void InternalUnmarshalUdsPacket(T_ROBL_PKT_HDR *header, uint32_t bytes);
-
-    T_ROBL_PKT packet;
 
 private:
     void ThreadROBL(const std::string &pss_name); // thread for ROBL
+    int InternalTryMakeUDS(const std::string &pss_name);
+    int InternalCheckPacketIntegrity(T_ROBL_PKT *packet, uint32_t bytes);
+    uint32_t InternalAllocatePacketRecord(void);
+    void InternalPutMidPacket(uint32_t pkt_rec_ix);
+    void InternalUnmarshalSinglePacket(T_ROBL_PKT *packet, uint32_t bytes);
+    void InternalUnmarshalUdsPacket(T_ROBL_PKT *packet, uint32_t bytes);
 
     std::thread m_thread_robl;
     std::thread::id m_thread_robl_id;
@@ -303,6 +292,8 @@ private:
     std::filesystem::path m_uds_file_path;
 
     T_PKT_STAT m_stat_uds;
+
+    T_ROBL_PKT_ASSEMBLY m_packet; // UDS packet receive buffer (by thread ROBL)
 };
 
 #include "robl_base_impl.hpp"

@@ -224,11 +224,8 @@ struct T_ROBL_PKT_REC
 struct T_ROBL_MULTI_PKT_REC
 {
     T_ROBL_PKT hdr;
-
     uint32_t len;
-    uint8_t *payload;
-
-    uint32_t next;
+    std::shared_ptr<std::vector<std::byte>> payload;
 };
 
 struct T_ROBL_PKT_ASSEMBLY
@@ -243,7 +240,7 @@ struct T_ROBL_PKT_ASSEMBLY
     uint32_t pkt_rec__free_list;
 
     uint32_t multi_pkt_rec_using_counter;
-    T_ROBL_MULTI_PKT_REC multi_pkt_rec[ROBL__MULTI_PKT_REC_NO];
+    std::array<T_ROBL_MULTI_PKT_REC, ROBL__MULTI_PKT_REC_NO> multi_pkt_rec;
 };
 
 struct T_PKT_STAT
@@ -287,6 +284,9 @@ private:
     uint32_t AllocatePacketRecord(void);
     void PutMidPacket(uint32_t pkt_rec_ix);
     void UnmarshalSinglePacket(T_ROBL_PKT *packet, uint32_t bytes);
+    uint32_t AllocateMultiPacketRecord(uint32_t xid);
+    uint32_t SearchMultiPacketRecord(uint32_t xid);
+    int UnmarshalFragmentPacket(T_ROBL_PKT *packet, uint32_t bytes);
     void UnmarshalUdsPacket(T_ROBL_PKT *packet, uint32_t bytes);
 
     std::thread m_thread_robl;

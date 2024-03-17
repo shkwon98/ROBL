@@ -5,11 +5,13 @@
 #include <iostream>
 #include <thread>
 
-#include "robl_base.hpp"
+#include "robl_base.h"
 
 using namespace std::chrono_literals;
 
-class ROBL : private ROBL_BASE
+namespace ROBL
+{
+class ROBL : private Internal::ROBL_BASE
 {
     enum
     {
@@ -29,5 +31,4 @@ private:
     uint32_t status;
     std::string m_pss_name;
 };
-
-#include "robl_impl.hpp"
+} // namespace ROBL

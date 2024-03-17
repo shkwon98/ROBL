@@ -1,8 +1,9 @@
-#pragma once
+#include "robl.h"
 
-#include "robl.hpp"
+namespace ROBL
+{
 
-inline int ROBL::Init(int ac, char **av, const std::string &pss_name)
+int ROBL::Init(int ac, char **av, const std::string &pss_name)
 {
     auto init_progress = 0U;
     int result = EROBL__OK;
@@ -10,7 +11,7 @@ inline int ROBL::Init(int ac, char **av, const std::string &pss_name)
     if (result == EROBL__OK)
     {
         init_progress |= ROBL_INIT_PROGRESS__CREATE_THR_ROBL;
-        InternalCreateThreadROBL(pss_name);
+        CreateThreadROBL(pss_name);
     }
 
     if (result == EROBL__OK)
@@ -24,3 +25,5 @@ inline int ROBL::Init(int ac, char **av, const std::string &pss_name)
     // n.
     return result;
 }
+
+} // namespace ROBL

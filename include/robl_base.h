@@ -13,9 +13,12 @@
 #include <unistd.h>
 #include <vector>
 
-#include "robl_log.hpp"
+// #include "robl_log.hpp"
 
 using namespace std::chrono_literals;
+
+namespace ROBL
+{
 
 /*==========================================================================*/
 
@@ -37,7 +40,7 @@ typedef struct
 
     uint8_t payload[0];
 } T_ROBL_PKT;
-#define ROBL_PKT_HDR__SZ (sizeof(T_ROBL_PKT_HDR))
+#define ROBL_PKT_HDR__SZ (sizeof(T_ROBL_PKT))
 
 #pragma pack(pop)
 
@@ -212,7 +215,7 @@ struct T_ROBL_PKT_REC
 {
     uint32_t xid;
     uint32_t len;
-    std::shared_ptr<std::byte[]> payload;
+    std::shared_ptr<std::vector<std::byte>> payload;
 
     uint32_t next_idx;
     // uint32_t list;
@@ -254,9 +257,12 @@ struct T_PKT_STAT
     uint32_t tx_err;
     uint32_t crc_err;
 };
+} // namespace ROBL
 
 /*==========================================================================*/
 
+namespace ROBL::Internal
+{
 class ROBL_BASE
 {
     enum
@@ -272,16 +278,16 @@ public:
     ~ROBL_BASE(void);
 
 protected:
-    void InternalCreateThreadROBL(const std::string &pss_name);
+    void CreateThreadROBL(const std::string &pss_name);
 
 private:
     void ThreadROBL(const std::string &pss_name); // thread for ROBL
-    int InternalTryMakeUDS(const std::string &pss_name);
-    int InternalCheckPacketIntegrity(T_ROBL_PKT *packet, uint32_t bytes);
-    uint32_t InternalAllocatePacketRecord(void);
-    void InternalPutMidPacket(uint32_t pkt_rec_ix);
-    void InternalUnmarshalSinglePacket(T_ROBL_PKT *packet, uint32_t bytes);
-    void InternalUnmarshalUdsPacket(T_ROBL_PKT *packet, uint32_t bytes);
+    int TryMakeUDS(const std::string &pss_name);
+    int CheckPacketIntegrity(T_ROBL_PKT *packet, uint32_t bytes);
+    uint32_t AllocatePacketRecord(void);
+    void PutMidPacket(uint32_t pkt_rec_ix);
+    void UnmarshalSinglePacket(T_ROBL_PKT *packet, uint32_t bytes);
+    void UnmarshalUdsPacket(T_ROBL_PKT *packet, uint32_t bytes);
 
     std::thread m_thread_robl;
     std::thread::id m_thread_robl_id;
@@ -296,4 +302,4 @@ private:
     T_ROBL_PKT_ASSEMBLY m_packet; // UDS packet receive buffer (by thread ROBL)
 };
 
-#include "robl_base_impl.hpp"
+} // namespace ROBL::Internal

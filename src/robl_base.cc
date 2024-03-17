@@ -3,7 +3,7 @@
 namespace ROBL
 {
 
-inline Internal::ROBL_BASE::ROBL_BASE(void)
+Internal::ROBL_BASE::ROBL_BASE(void)
     : m_thread_robl_id(std::thread::id())
     , m_thread_robl_last_tick(0)
     , m_thread_robl_loop_cnt(0)
@@ -12,7 +12,7 @@ inline Internal::ROBL_BASE::ROBL_BASE(void)
 {
 }
 
-inline Internal::ROBL_BASE::~ROBL_BASE(void)
+Internal::ROBL_BASE::~ROBL_BASE(void)
 {
     if (m_uds_fd != 0)
     {
@@ -20,7 +20,7 @@ inline Internal::ROBL_BASE::~ROBL_BASE(void)
     }
 }
 
-inline void Internal::ROBL_BASE::CreateThreadROBL(const std::string &pss_name)
+void Internal::ROBL_BASE::CreateThreadROBL(const std::string &pss_name)
 {
     m_thread_robl = std::thread(&ROBL_BASE::ThreadROBL, this, pss_name);
     m_thread_robl_id = m_thread_robl.get_id();
@@ -28,7 +28,7 @@ inline void Internal::ROBL_BASE::CreateThreadROBL(const std::string &pss_name)
     std::cout << "[ROBL:THR-ROBL] THREAD: ThreadROBL start...." << std::endl;
 }
 
-inline int Internal::ROBL_BASE::TryMakeUDS(const std::string &pss_name)
+int Internal::ROBL_BASE::TryMakeUDS(const std::string &pss_name)
 {
     // 0. 만약 이미 UDS가 열려있다면, 그대로 리턴
     if (m_uds_fd != 0)
@@ -80,7 +80,7 @@ inline int Internal::ROBL_BASE::TryMakeUDS(const std::string &pss_name)
     return EROBL__OK;
 }
 
-inline void Internal::ROBL_BASE::ThreadROBL(const std::string &pss_name) // thread for ROBL
+void Internal::ROBL_BASE::ThreadROBL(const std::string &pss_name) // thread for ROBL
 {
 
     while (true)

@@ -275,19 +275,115 @@ public:
     ~ROBL_BASE(void);
 
 protected:
+    /**
+     * @brief Creates a thread for ROBL.
+     *
+     * This function creates a thread for ROBL with the specified name.
+     *
+     * @param pss_name The name of the process.
+     */
     void CreateThreadROBL(const std::string &pss_name);
 
 private:
+    /**
+     * @brief Thread for ROBL.
+     *
+     * This function represents the thread for ROBL. It takes a string parameter `pss_name` as input.
+     *
+     * @param pss_name The name of the process.
+     */
     void ThreadROBL(const std::string &pss_name); // thread for ROBL
+
+    /**
+     * Tries to make a UDS (Unix Domain Socket) with the given pss_name.
+     *
+     * @param pss_name The name of the process to be used in the UDS file path.
+     * @return Returns an integer indicating the success or failure of the operation.
+     */
     int TryMakeUDS(const std::string &pss_name);
-    int CheckPacketIntegrity(T_ROBL_PKT *packet, uint32_t bytes);
-    uint32_t AllocatePacketRecord(void);
-    void PutMidPacket(uint32_t pkt_rec_ix);
-    void UnmarshalSinglePacket(T_ROBL_PKT *packet, uint32_t bytes);
-    uint32_t AllocateMultiPacketRecord(uint32_t xid);
-    uint32_t SearchMultiPacketRecord(uint32_t xid);
-    int UnmarshalFragmentPacket(T_ROBL_PKT *packet, uint32_t bytes);
+
+    /**
+     * @brief Unmarshals a UDS packet.
+     *
+     * This function is responsible for unmarshaling a UDS packet into a T_ROBL_PKT structure.
+     *
+     * @param packet A pointer to the T_ROBL_PKT structure where the original UDS packet is stored.
+     * @param bytes The number of bytes in the UDS packet.
+     */
     void UnmarshalUdsPacket(T_ROBL_PKT *packet, uint32_t bytes);
+
+    /**
+     * @brief Checks the integrity of a ROBL packet.
+     *
+     * This function verifies the integrity of a ROBL packet by performing various checks on it.
+     *
+     * @param packet A pointer to the ROBL packet to be checked.
+     * @param bytes The number of bytes in the packet.
+     * @return An integer value indicating the result of the integrity check.
+     *         - 0 if the packet is valid.
+     *         - Non-zero if the packet is invalid.
+     */
+    int CheckPacketIntegrity(T_ROBL_PKT *packet, uint32_t bytes);
+
+    /**
+     * @brief Allocates a packet record.
+     *
+     * This function is responsible for allocating a packet record. It returns a unique identifier
+     * for the allocated packet record.
+     *
+     * @return The unique identifier of the allocated packet record.
+     */
+    uint32_t AllocatePacketRecord(void);
+
+    /**
+     * Puts a mid-packet at the specified current index.
+     *
+     * @param curr_idx The current index to put the mid-packet at.
+     */
+    void PutMidPacket(uint32_t pkt_rec_ix);
+
+    /**
+     * Unmarshals a single packet of the ROBL_BASE protocol.
+     *
+     * @param packet The pointer to the packet structure to be filled with the unmarshaled data.
+     * @param bytes The number of bytes in the packet.
+     */
+    void UnmarshalSinglePacket(T_ROBL_PKT *packet, uint32_t bytes);
+
+    /**
+     * @brief Allocates a multi-packet record for the given xID.
+     *
+     * This function is responsible for allocating a multi-packet record for the specified
+     * xID. The multi-packet record is used to store information about a transaction
+     * that spans multiple packets.
+     *
+     * @param xid The xID for which to allocate the multi-packet record.
+     * @return The allocated multi-packet record ID.
+     */
+    uint32_t AllocateMultiPacketRecord(uint32_t xid);
+
+    /**
+     * @brief Searches for a multi-packet record with the given xID.
+     *
+     * This function searches for a multi-packet record with the specified xID.
+     *
+     * @param xid The xID to search for.
+     * @return The index of the multi-packet record if found, or 0 if not found.
+     */
+    uint32_t SearchMultiPacketRecord(uint32_t xid);
+
+    /**
+     * Unmarshals a fragment packet of the ROBL protocol.
+     *
+     * This function is responsible for unmarshaling a fragment packet of the ROBL protocol.
+     * It takes a pointer to a T_ROBL_PKT structure and the number of bytes in the packet as input.
+     * The function performs the necessary operations to unmarshal the packet and update the T_ROBL_PKT structure.
+     *
+     * @param packet A pointer to a T_ROBL_PKT structure representing the packet to be unmarshaled.
+     * @param bytes The number of bytes in the packet.
+     * @return An integer value indicating the success or failure of the unmarshaling operation.
+     */
+    int UnmarshalFragmentPacket(T_ROBL_PKT *packet, uint32_t bytes);
 
     std::thread m_thread_robl;
     std::thread::id m_thread_robl_id;

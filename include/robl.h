@@ -24,8 +24,8 @@ class ROBL : private Internal::ROBL_BASE
 public:
     int Init(int ac, char **av, const std::string &pss_name);
 
-    int SendMessage(uint32_t mid, void *msg, uint32_t msg_len, uint16_t dpid, uint32_t exp_tick);
     int ReceiveMessage(void **ptr, uint32_t timeout);
+    int SendMessage(uint32_t mid, void *msg, uint32_t msg_len, uint16_t dpid, uint32_t exp_tick);
 
 private:
     uint32_t status;

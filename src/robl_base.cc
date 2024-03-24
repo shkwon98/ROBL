@@ -30,6 +30,51 @@ void Internal::ROBL_BASE::CreateThreadROBL(const std::string &pss_name)
     std::cout << "[ROBL:THR-ROBL] THREAD: ThreadROBL start...." << std::endl;
 }
 
+void Internal::ROBL_BASE::ThreadROBL(const std::string &pss_name) // thread for ROBL
+{
+    while (true)
+    {
+        m_thread_robl_loop_cnt++;
+
+        if (TryMakeUDS(pss_name) != EROBL__OK)
+        {
+            std::this_thread::sleep_for(1s);
+            continue;
+        }
+
+        auto uds_pkt_buf = std::vector<std::byte>(ROBL_PKT_BUF_LEN, std::byte(0x00));
+        auto bytes = read(m_uds_fd, uds_pkt_buf.data(), ROBL_PKT_BUF_LEN); // block until receive message
+
+        const auto *packet = reinterpret_cast<T_ROBL_PKT *>(uds_pkt_buf.data());
+
+        if (bytes < 0)
+        {
+            std::cerr << "[UDS-RX] read(uds_fd) failed. errno=" << errno << std::endl;
+        }
+        else if (bytes == 0)
+        {
+            std::cerr << "[UDS-RX] read(uds_fd)==0" << std::endl;
+            shutdown(m_uds_fd, SHUT_RDWR);
+            close(m_uds_fd);
+            m_uds_fd = 0;
+        }
+        else if (packet->magic != ROBL_PKT_MAGIC)
+        {
+            std::cerr << "[UDS-RX] MAGIC(" << std::hex << packet->magic << ") mismatch. discard..." << std::endl;
+        }
+        else
+        {
+            std::cout << "[UDS-RX] read(uds_fd) succ. xid=" << std::hex << packet->xid << ", bytes=" << bytes << std::endl;
+            // TODO: DUMP here
+            UnmarshalUdsPacket(reinterpret_cast<T_ROBL_PKT *>(uds_pkt_buf.data()), bytes);
+        }
+
+        m_thread_robl_last_tick =
+            std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
+                .count();
+    }
+}
+
 int Internal::ROBL_BASE::TryMakeUDS(const std::string &pss_name)
 {
     // 0. 만약 이미 UDS가 열려있다면, 그대로 리턴
@@ -82,49 +127,29 @@ int Internal::ROBL_BASE::TryMakeUDS(const std::string &pss_name)
     return EROBL__OK;
 }
 
-void Internal::ROBL_BASE::ThreadROBL(const std::string &pss_name) // thread for ROBL
+void Internal::ROBL_BASE::UnmarshalUdsPacket(T_ROBL_PKT *packet, uint32_t bytes)
 {
-
-    while (true)
+    // 0. check error
+    if (CheckPacketIntegrity(packet, bytes) < 0)
     {
-        m_thread_robl_loop_cnt++;
+        m_stat_uds.rx_err++;
+        return;
+    }
 
-        if (TryMakeUDS(pss_name) != EROBL__OK)
-        {
-            std::this_thread::sleep_for(1s);
-            continue;
-        }
+    // stat
+    m_stat_uds.rx_pkt++;
+    m_stat_uds.rx_bytes += bytes;
 
-        auto uds_pkt_buf = std::vector<std::byte>(ROBL_PKT_BUF_LEN, std::byte(0x00));
-        auto bytes = read(m_uds_fd, uds_pkt_buf.data(), ROBL_PKT_BUF_LEN); // block until receive message
-
-        const auto *packet = reinterpret_cast<T_ROBL_PKT *>(uds_pkt_buf.data());
-
-        if (bytes < 0)
-        {
-            std::cerr << "[UDS-RX] read(uds_fd) failed. errno=" << errno << std::endl;
-        }
-        else if (bytes == 0)
-        {
-            std::cerr << "[UDS-RX] read(uds_fd)==0" << std::endl;
-            shutdown(m_uds_fd, SHUT_RDWR);
-            close(m_uds_fd);
-            m_uds_fd = 0;
-        }
-        else if (packet->magic != ROBL_PKT_MAGIC)
-        {
-            std::cerr << "[UDS-RX] MAGIC(" << std::hex << packet->magic << ") mismatch. discard..." << std::endl;
-        }
-        else
-        {
-            std::cout << "[UDS-RX] read(uds_fd) succ. xid=" << std::hex << packet->xid << ", bytes=" << bytes << std::endl;
-            // TODO: DUMP here
-            UnmarshalUdsPacket(reinterpret_cast<T_ROBL_PKT *>(uds_pkt_buf.data()), bytes);
-        }
-
-        m_thread_robl_last_tick =
-            std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch())
-                .count();
+    // processing...
+    if (packet->tpn == 1)
+    {
+        // single packet
+        UnmarshalSinglePacket(packet, bytes);
+    }
+    else
+    {
+        // multiple packet (fragment packet)
+        UnmarshalFragmentPacket(packet, bytes);
     }
 }
 

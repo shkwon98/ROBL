@@ -373,30 +373,4 @@ int Internal::ROBL_BASE::UnmarshalFragmentPacket(T_ROBL_PKT *packet, uint32_t by
     return (int)PKT_REC__NULL; // 멀티 패킷에서 조립 미완성 의미
 }
 
-void Internal::ROBL_BASE::UnmarshalUdsPacket(T_ROBL_PKT *packet, uint32_t bytes)
-{
-    // 0. check error
-    if (CheckPacketIntegrity(packet, bytes) < 0)
-    {
-        m_stat_uds.rx_err++;
-        return;
-    }
-
-    // stat
-    m_stat_uds.rx_pkt++;
-    m_stat_uds.rx_bytes += bytes;
-
-    // processing...
-    if (packet->tpn == 1)
-    {
-        // single packet
-        UnmarshalSinglePacket(packet, bytes);
-    }
-    else
-    {
-        // multiple packet (fragment packet)
-        UnmarshalFragmentPacket(packet, bytes);
-    }
-}
-
 } // namespace ROBL

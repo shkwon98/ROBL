@@ -373,4 +373,27 @@ int Internal::ROBL_BASE::UnmarshalFragmentPacket(T_ROBL_PKT *packet, uint32_t by
     return (int)PKT_REC__NULL; // 멀티 패킷에서 조립 미완성 의미
 }
 
+int Internal::ROBL_BASE::InitializeUdsPacketHeader(T_ROBL_PKT &header, uint32_t msg_len, uint32_t xid)
+{
+    if (msg_len > (ROBL_PKT_TPN_MAX * ROBL_UDS_PLD_LEN))
+    {
+        return EROBL__COMM_TOO_LARGE_MSG;
+    }
+
+    header.magic = ROBL_PKT_MAGIC;
+    header.tpn = (msg_len == 0U)
+                     ? 1U
+                     : ((msg_len % ROBL_UDS_PLD_LEN) ? ((msg_len / ROBL_UDS_PLD_LEN) + 1U) : (msg_len / ROBL_UDS_PLD_LEN));
+    header.psn = 0U;
+    header.tpl = msg_len;
+
+    header.xid = xid;
+    header.crc32 = 0U;
+    header.tick =
+        std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    header.pl = 0U;
+
+    return EROBL__OK;
+}
+
 } // namespace ROBL

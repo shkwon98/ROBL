@@ -167,6 +167,17 @@ typedef struct
 #define EROBL__SHMAT_FAIL__CFG  (-126)
 #define EROBL__CLA_ERROR        (-127)
 
+// 30. COMM (Communications: common)
+#define EROBL__COMM_NO_SERVICE            (-300)
+#define EROBL__COMM_FRAG_PKT_HANDLER_FAIL (-301)
+#define EROBL__COMM_BROKEN_RCV_MSG        (-302)
+#define EROBL__COMM_PKT_INTEGRITY_FAIL    (-303)
+#define EROBL__COMM_PKT_HDR_FAIL          (-304)
+#define EROBL__COMM_DEST_HOST_UNKNOWN     (-305)
+#define EROBL__COMM_MSG_BUFLEN_ERR        (-306)
+#define EROBL__COMM_NO_MESSAGE            (-307)
+#define EROBL__COMM_TOO_LARGE_MSG         (-308)
+
 // 40. MID
 #define EROBL__NO_SUCH_MID          (-400)
 #define EROBL__MID_UDS_NOT_OPEN     (-401)
@@ -292,6 +303,8 @@ protected:
         return packet_assembler_;
     }
 
+    int InitializeUdsPacketHeader(T_ROBL_PKT &header, uint32_t msg_len, uint32_t xid);
+
 private:
     /**
      * @brief Thread for ROBL.
@@ -392,6 +405,9 @@ private:
      * @return An integer value indicating the success or failure of the unmarshaling operation.
      */
     int UnmarshalFragmentPacket(T_ROBL_PKT *packet, uint32_t bytes);
+
+    // TODO: 멀티캐스트 그룹 생성: 자신이 처리할 메시지ID 목록에 대한 정보 공유 이를 받으면
+    // std::unordered_map<메시지 ID, UDS 소켓경로>에 저장
 
     std::thread m_thread_robl;
     std::thread::id m_thread_robl_id;

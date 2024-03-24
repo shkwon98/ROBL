@@ -58,17 +58,17 @@ int Internal::ROBL_BASE::CheckPacketIntegrity(T_ROBL_PKT *packet, uint32_t bytes
 uint32_t Internal::ROBL_BASE::AllocatePacketRecord(void)
 {
 #if 0
-    if (m_packet.pkt_rec__free_head == PKT_REC__NULL)
+    if (packet_assembler_->pkt_rec__free_head == PKT_REC__NULL)
     {
         retrieve_pkt_rec(); // TODO:: implement retrieve_pkt_rec
     }
 #endif
 
-    auto lock = std::unique_lock<std::mutex>(m_packet.mutex.pkt_mutex);
-    auto curr_idx = m_packet.pkt_rec__free_head;
-    auto &curr_rec = m_packet.pkt_rec[curr_idx];
+    auto lock = std::unique_lock<std::mutex>(packet_assembler_->mutex.pkt_mutex);
+    auto curr_idx = packet_assembler_->pkt_rec__free_head;
+    auto &curr_rec = packet_assembler_->pkt_rec[curr_idx];
 
-    m_packet.pkt_rec__free_head = curr_rec.next_idx;
+    packet_assembler_->pkt_rec__free_head = curr_rec.next_idx;
     lock.unlock();
 
     // clear current record
@@ -80,23 +80,23 @@ uint32_t Internal::ROBL_BASE::AllocatePacketRecord(void)
 
 void Internal::ROBL_BASE::PutMidPacket(uint32_t curr_idx)
 {
-    auto &curr_rec = m_packet.pkt_rec[curr_idx];
+    auto &curr_rec = packet_assembler_->pkt_rec[curr_idx];
 
-    std::lock_guard<std::mutex> lock(m_packet.mutex.mid_mutex);
+    std::lock_guard<std::mutex> lock(packet_assembler_->mutex.mid_mutex);
 
     // add to mid list
-    if (m_packet.mid.head == PKT_REC__NULL)
+    if (packet_assembler_->mid.head == PKT_REC__NULL)
     {
-        m_packet.mid.head = m_packet.mid.tail = curr_idx;
+        packet_assembler_->mid.head = packet_assembler_->mid.tail = curr_idx;
     }
     else
     {
-        m_packet.pkt_rec[m_packet.mid.tail].next_idx = curr_idx;
-        m_packet.mid.tail = curr_idx;
+        packet_assembler_->pkt_rec[packet_assembler_->mid.tail].next_idx = curr_idx;
+        packet_assembler_->mid.tail = curr_idx;
     }
 
-    m_packet.mid.put_no++;
-    m_packet.mid.last_recv_tick =
+    packet_assembler_->mid.put_no++;
+    packet_assembler_->mid.last_recv_tick =
         std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 }
 
@@ -106,7 +106,7 @@ void Internal::ROBL_BASE::UnmarshalSinglePacket(T_ROBL_PKT *packet, uint32_t byt
     auto curr_idx = AllocatePacketRecord();
 
     // 2. init PKT_REC
-    auto &curr_rec = m_packet.pkt_rec[curr_idx];
+    auto &curr_rec = packet_assembler_->pkt_rec[curr_idx];
     curr_rec.xid = packet->xid;
     curr_rec.len = bytes;
     curr_rec.payload = std::make_shared<std::vector<std::byte>>(bytes + BLK_ALIGN(bytes, 128));
@@ -123,25 +123,25 @@ void Internal::ROBL_BASE::UnmarshalSinglePacket(T_ROBL_PKT *packet, uint32_t byt
 uint32_t Internal::ROBL_BASE::AllocateMultiPacketRecord(uint32_t xid)
 {
 
-    std::lock_guard<std::mutex> lock(m_packet.mutex.pkt_mutex);
+    std::lock_guard<std::mutex> lock(packet_assembler_->mutex.pkt_mutex);
 
     // 1. 동일한 xid를 가진 MPKT_REC가 남아 있으면 전부 초기화
-    for (auto i = 0U; i < m_packet.multi_pkt_rec.size(); i++)
+    for (auto i = 0U; i < packet_assembler_->multi_pkt_rec.size(); i++)
     {
-        if (m_packet.multi_pkt_rec[i].hdr.xid == xid)
+        if (packet_assembler_->multi_pkt_rec[i].hdr.xid == xid)
         {
-            m_packet.multi_pkt_rec[i].payload.reset();
-            memset((char *)&(m_packet.multi_pkt_rec[i]), 0x00, sizeof(T_ROBL_PKT_REC));
+            packet_assembler_->multi_pkt_rec[i].payload.reset();
+            memset((char *)&(packet_assembler_->multi_pkt_rec[i]), 0x00, sizeof(T_ROBL_PKT_REC));
         }
     }
 
     // 2. 비어있는 MPKT_REC 찾아 인덱스 반환
-    m_packet.multi_pkt_rec_using_counter++;
-    for (auto i = 0U; i < m_packet.multi_pkt_rec.size(); i++)
+    packet_assembler_->multi_pkt_rec_using_counter++;
+    for (auto i = 0U; i < packet_assembler_->multi_pkt_rec.size(); i++)
     {
-        auto idx = (m_packet.multi_pkt_rec_using_counter + i) % m_packet.multi_pkt_rec.size();
+        auto idx = (packet_assembler_->multi_pkt_rec_using_counter + i) % packet_assembler_->multi_pkt_rec.size();
 
-        if (m_packet.multi_pkt_rec[idx].hdr.xid == 0)
+        if (packet_assembler_->multi_pkt_rec[idx].hdr.xid == 0)
         {
             return idx;
         }
@@ -153,9 +153,9 @@ uint32_t Internal::ROBL_BASE::AllocateMultiPacketRecord(uint32_t xid)
 
 uint32_t Internal::ROBL_BASE::SearchMultiPacketRecord(uint32_t xid)
 {
-    for (auto i = 0U; i < m_packet.multi_pkt_rec.size(); i++)
+    for (auto i = 0U; i < packet_assembler_->multi_pkt_rec.size(); i++)
     {
-        if (m_packet.multi_pkt_rec[i].hdr.xid == xid)
+        if (packet_assembler_->multi_pkt_rec[i].hdr.xid == xid)
         {
             return i;
         }
@@ -200,7 +200,7 @@ int Internal::ROBL_BASE::UnmarshalFragmentPacket(T_ROBL_PKT *packet, uint32_t by
         }
 
         // 1.2. init MPKT_REC
-        auto &curr_multi_packet_rec = m_packet.multi_pkt_rec[idx];
+        auto &curr_multi_packet_rec = packet_assembler_->multi_pkt_rec[idx];
         curr_multi_packet_rec.hdr = *packet;
         curr_multi_packet_rec.hdr.tick = now;
         curr_multi_packet_rec.len = (ROBL_PKT_HDR__SZ + packet->tpl) + BLK_ALIGN((ROBL_PKT_HDR__SZ + packet->tpl), BLK_1K);
@@ -219,7 +219,7 @@ int Internal::ROBL_BASE::UnmarshalFragmentPacket(T_ROBL_PKT *packet, uint32_t by
         }
 
         // 2.2. check MULTI PACKET header
-        auto curr_multi_packet_rec = m_packet.multi_pkt_rec[idx];
+        auto curr_multi_packet_rec = packet_assembler_->multi_pkt_rec[idx];
 
         // 분할 패킷의 헤더 정보가 변경되었을 경우 확인하기 위함(디버깅용)
         if (curr_multi_packet_rec.hdr.tpl != packet->tpl)
@@ -275,7 +275,7 @@ int Internal::ROBL_BASE::UnmarshalFragmentPacket(T_ROBL_PKT *packet, uint32_t by
         }
 
         // 3.2. check MULTI PACKET header
-        auto curr_multi_packet_rec = m_packet.multi_pkt_rec[idx];
+        auto curr_multi_packet_rec = packet_assembler_->multi_pkt_rec[idx];
 
         // 분할 패킷의 헤더 정보가 변경되었을 경우 확인하기 위함(디버깅용)
         if (curr_multi_packet_rec.hdr.tpl != packet->tpl)
@@ -334,7 +334,7 @@ int Internal::ROBL_BASE::UnmarshalFragmentPacket(T_ROBL_PKT *packet, uint32_t by
         auto curr_idx = AllocatePacketRecord();
 
         // 3.6. init PKT_REC
-        auto &curr_rec = m_packet.pkt_rec[curr_idx];
+        auto &curr_rec = packet_assembler_->pkt_rec[curr_idx];
         curr_rec.xid = curr_multi_packet_rec.hdr.xid;
         curr_rec.len = curr_multi_packet_rec.hdr.tpl + ROBL_PKT_HDR__SZ;
         curr_rec.payload = curr_multi_packet_rec.payload;
@@ -363,7 +363,7 @@ int Internal::ROBL_BASE::UnmarshalFragmentPacket(T_ROBL_PKT *packet, uint32_t by
 
         std::cerr << "[PKT-MRX] free(payload), delete MPKT_REC" << std::endl;
 
-        auto &curr_multi_packet_rec = m_packet.multi_pkt_rec[idx];
+        auto &curr_multi_packet_rec = packet_assembler_->multi_pkt_rec[idx];
         std::memset(&curr_multi_packet_rec.hdr, 0x00, sizeof(curr_multi_packet_rec.hdr));
         curr_multi_packet_rec.len = 0;
         curr_multi_packet_rec.payload.reset();

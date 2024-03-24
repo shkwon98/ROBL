@@ -10,6 +10,7 @@ Internal::ROBL_BASE::ROBL_BASE(void)
     , m_uds_fd(0)
     , m_uds_file_path("")
 {
+    packet_assembler_ = std::make_unique<T_ROBL_PKT_ASSEMBLY>();
 }
 
 Internal::ROBL_BASE::~ROBL_BASE(void)

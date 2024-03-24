@@ -94,7 +94,7 @@ typedef struct
 #define ROBL_PKT_BUF_LEN (ROBL_PKT_LEN + BLK_ALIGN(ROBL_PKT_LEN, BLK_1K))
 
 /*-------------------------------------------------------------------------*/
-// ROBL_INIT status
+// ROBL_INIT m_status
 #define ROBL_INIT_PROGRESS__MAKE_LOCK_FILE  (0x01U)
 #define ROBL_INIT_PROGRESS__ATTACH_SHM      (0x02U)
 #define ROBL_INIT_PROGRESS__CHECK_CRC       (0x04U)
@@ -116,7 +116,18 @@ typedef struct
 
 /*-------------------------------------------------------------------------*/
 
+#define EROBL__OK      (0)
 #define EROBL__TIMEOUT (0)
+
+// 31. UDS
+#define EROBL__UDS_FAIL           (-310)
+#define EROBL__UDS_SOCK_FAIL      (-311)
+#define EROBL__UDS_SOCK_OPEN_FAIL (-312)
+#define EROBL__UDS_SOCKOPT_FAIL   (-313)
+#define EROBL__UDS_BIND_FAIL      (-314)
+#define EROBL__UDS_SEND_FAIL      (-315)
+#define EROBL__UDS_RECV_FAIL      (-316)
+#define EROBL__UDS_INVALID_PSS_ID (-319)
 
 // 0. ROBL arguments error
 #define EROBL__ARGS_1_ERR (-1)
@@ -262,14 +273,6 @@ namespace ROBL::Internal
 {
 class ROBL_BASE
 {
-    enum
-    {
-        EROBL__OK = 0,
-        EROBL__UDS_SOCK_FAIL = -1,
-        EROBL__UDS_SOCKOPT_FAIL = -2,
-        EROBL__UDS_BIND_FAIL = -3,
-    };
-
 public:
     ROBL_BASE(void);
     ~ROBL_BASE(void);
@@ -283,6 +286,11 @@ protected:
      * @param pss_name The name of the process.
      */
     void CreateThreadROBL(const std::string &pss_name);
+
+    std::shared_ptr<T_ROBL_PKT_ASSEMBLY> GetPacketAssembler(void)
+    {
+        return packet_assembler_;
+    }
 
 private:
     /**
@@ -395,7 +403,7 @@ private:
 
     T_PKT_STAT m_stat_uds;
 
-    T_ROBL_PKT_ASSEMBLY m_packet; // UDS packet receive buffer (by thread ROBL)
+    std::shared_ptr<T_ROBL_PKT_ASSEMBLY> packet_assembler_; // UDS packet receive buffer (by thread ROBL)
 };
 
 } // namespace ROBL::Internal

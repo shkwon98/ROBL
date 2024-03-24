@@ -16,14 +16,19 @@ int ROBL::Init(int ac, char **av, const std::string &pss_name)
 
     if (result == EROBL__OK)
     {
-        status &= ~ROBL_INIT_PROGRESS__MASK;
-        status |= (init_progress & ROBL_INIT_PROGRESS__MASK);
+        m_status &= ~ROBL_INIT_PROGRESS__MASK;
+        m_status |= (init_progress & ROBL_INIT_PROGRESS__MASK);
 
         std::cout << "[INIT] done. (init_progress=" << std::hex << init_progress << ")" << std::endl;
     }
 
     // n.
     return result;
+}
+
+std::shared_ptr<MidListener> ROBL::CreateMessageListener(void)
+{
+    return std::make_shared<MidListener>(GetPacketAssembler());
 }
 
 } // namespace ROBL
